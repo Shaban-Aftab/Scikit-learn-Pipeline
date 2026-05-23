@@ -43,7 +43,7 @@ st.markdown("""
             text-align: center;
         }
     </style>
-""", unsafe_allowed_html=True)
+""", unsafe_allow_html=True)
 
 MODEL_PATH = "customer_churn_model.joblib"
 
@@ -133,7 +133,7 @@ def main():
             step=10.0
         )
         
-        st.markdown("<br>", unsafe_allowed_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
         predict_button = st.button("🔮 Calculate Churn Risk", type="primary", use_container_width=True)
 
     # 3. Model inference
@@ -186,13 +186,13 @@ def main():
             with res_col2:
                 st.markdown("#### Status & Assessment")
                 if churn_probability < 0.3:
-                    st.markdown("<p class='risk-low'>✅ Low Risk of Churn</p>", unsafe_allowed_html=True)
+                    st.markdown("<p class='risk-low'>✅ Low Risk of Churn</p>", unsafe_allow_html=True)
                     st.success("This customer shows high loyalty traits. Standard retention strategy is appropriate.")
                 elif churn_probability < 0.65:
-                    st.markdown("<p class='risk-medium'>⚠️ Moderate Risk of Churn</p>", unsafe_allowed_html=True)
+                    st.markdown("<p class='risk-medium'>⚠️ Moderate Risk of Churn</p>", unsafe_allow_html=True)
                     st.warning("This customer has signs of service fatigue. Proactive loyalty offers or surveys are recommended.")
                 else:
-                    st.markdown("<p class='risk-high'>🚨 High Risk of Churn (Action Required)</p>", unsafe_allowed_html=True)
+                    st.markdown("<p class='risk-high'>🚨 High Risk of Churn (Action Required)</p>", unsafe_allow_html=True)
                     st.error("Urgent intervention needed! This customer exhibits severe churn indicators (e.g. short contract, no security options). Consider targeted promotional discounts.")
             
             # Show explainable factors
