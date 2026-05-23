@@ -51,11 +51,44 @@ MODEL_PATH = "customer_churn_model.joblib"
 def load_churn_pipeline(model_path: str):
     """
     Loads the complete scikit-learn pipeline (preprocessing + classifier) from disk.
-    Caches the model in streamlit memory to avoid reloading on user actions.
+    If loading fails due to library version mismatch (AttributeError),
+    it automatically downloads the dataset and retrains the model in the background in seconds.
     """
     if os.path.exists(model_path):
-        return joblib.load(model_path)
-    return None
+        try:
+            return joblib.load(model_path)
+        except Exception as e:
+            st.sidebar.warning(f"⚠️ Local model unpickling mismatch: {e}")
+            st.sidebar.info("🔄 Re-fitting pipeline matching active system dependencies in the background...")
+            
+    # Auto-training fallback to guarantee 100% uptime on any hosting platform
+    try:
+        from train import load_data
+        from pipeline import preprocess_raw_data, build_preprocessor
+        from sklearn.pipeline import Pipeline
+        from sklearn.linear_model import LogisticRegression
+        
+        DATA_URL = "https://raw.githubusercontent.com/IBM/telco-customer-churn-on-icp4d/master/data/Telco-Customer-Churn.csv"
+        raw_df = load_data(DATA_URL)
+        X = raw_df.drop(columns=["Churn"])
+        y = raw_df["Churn"].map({"No": 0, "Yes": 1})
+        X_cleaned = preprocess_raw_data(X)
+        
+        preprocessor = build_preprocessor()
+        pipeline = Pipeline(steps=[
+            ("preprocessor", preprocessor),
+            ("classifier", LogisticRegression(max_iter=1000, C=1.0, random_state=42))
+        ])
+        
+        pipeline.fit(X_cleaned, y)
+        
+        # Save a fresh binary matching local scikit-learn version
+        joblib.dump(pipeline, model_path)
+        st.sidebar.success("🎉 Model successfully rebuilt & loaded!")
+        return pipeline
+    except Exception as err:
+        st.error(f"❌ Failed to auto-train fallback model: {err}")
+        return None
 
 def main():
     st.title("🔮 Telco Customer Churn Prediction Dashboard")
