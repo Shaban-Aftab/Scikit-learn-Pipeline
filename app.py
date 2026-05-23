@@ -1,8 +1,14 @@
+import sys
+import os
+
+# Dynamically inject the parent directory into sys.path to guarantee local module resolution
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-import os
+from pipeline import preprocess_raw_data
 
 # Set page configuration for a premium, wide dashboard look
 st.set_page_config(
@@ -132,10 +138,10 @@ def main():
 
     # 3. Model inference
     if predict_button:
-        # Build raw dict representing the row
+        # Build raw dict representing the row matching raw training schema
         raw_input_data = {
             "gender": [gender],
-            "SeniorCitizen": [senior_citizen],
+            "SeniorCitizen": [1 if senior_citizen == "Yes" else 0],
             "Partner": [partner],
             "Dependents": [dependents],
             "tenure": [tenure],
@@ -155,21 +161,17 @@ def main():
             "TotalCharges": [total_charges]
         }
         
-        # Load raw inputs into a DataFrame (matches training schema)
-        input_df = pd.DataFrame(raw_input_data)
+        # Load raw inputs into a DataFrame
+        raw_df = pd.DataFrame(raw_input_data)
         
-        # Streamlit doesn't run the clean logic automatically, so we apply it
-        # We also need to map SeniorCitizen back to integer representation as expected by pipeline
-        if input_df["SeniorCitizen"][0] == "Yes":
-            input_df["SeniorCitizen"] = [1]
-        else:
-            input_df["SeniorCitizen"] = [0]
-            
+        # Apply shared data cleaning to guarantee identical feature schema
+        input_cleaned = preprocess_raw_data(raw_df)
+        
         try:
-            # Execute inference directly on raw dataframe!
+            # Execute inference directly on clean dataframe!
             # Since ColumnTransformer drops unused columns and handles scaling/encoding, this is extremely robust.
-            churn_probability = pipeline.predict_proba(input_df)[0][1]
-            churn_prediction = pipeline.predict(input_df)[0]
+            churn_probability = pipeline.predict_proba(input_cleaned)[0][1]
+            churn_prediction = pipeline.predict(input_cleaned)[0]
             
             st.markdown("---")
             st.subheader("📊 Prediction Results")
